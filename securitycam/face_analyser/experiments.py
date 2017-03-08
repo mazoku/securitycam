@@ -104,6 +104,6 @@ if __name__ == '__main__':
         # quit the program on the press of key 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-            # When everything is done, release the capture
+    # When everything is done, release the capture
     video_capture.release()
     cv2.destroyAllWindows()

@@ -1,5 +1,5 @@
-# import the necessary packages
 from __future__ import print_function
+# import the necessary packages
 from imutils.object_detection import non_max_suppression
 from imutils import paths
 import numpy as np
@@ -8,10 +8,12 @@ import cv2
 
 
 def detect(image, descriptor):
-    image = imutils.resize(image, width=min(400, image.shape[1]))
+    # image = imutils.resize(image, width=min(400, image.shape[1]))
+    image = imutils.resize(image, width=min(600, image.shape[1]))
 
     # detect people in the image
     (rects, weights) = descriptor.detectMultiScale(image, winStride=(4, 4), padding=(8, 8), scale=1.05)
+    # (rects, weights) = descriptor.detectMultiScale(image, winStride=(4, 4), padding=(16, 16), scale=1.05)
 
     # draw the original bounding boxes
     # for (x, y, w, h) in rects:
@@ -45,7 +47,8 @@ if __name__ == '__main__':
             cv2.imshow('detection', img_vis)
 
             # quit the program on the press of key 'q'
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q') or key == 27:
                 break
 
     # When everything is done, release the capture

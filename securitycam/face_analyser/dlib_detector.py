@@ -17,7 +17,10 @@ def detect(img, face_detector):
 if __name__ == '__main__':
     # Create a HOG face detector using the built-in dlib class
     face_detector = dlib.get_frontal_face_detector()
-    video_capture = cv2.VideoCapture(0)
+
+    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0221.mp4'
+    video_capture = cv2.VideoCapture(data_path)
+    # video_capture = cv2.VideoCapture(0)
     # win = dlib.image_window()
 
     while True:
@@ -34,7 +37,7 @@ if __name__ == '__main__':
             for i, face_rect in enumerate(faces):
                 # Draw a box around each face we found
                 cv2.rectangle(frame_vis, (face_rect.left(), face_rect.top()), (face_rect.right(), face_rect.bottom()), (0, 0, 255), 2)
-                cv2.imshow('', frame_vis)
+            cv2.imshow('', frame_vis)
         else:
             cv2.imshow('', frame)
 

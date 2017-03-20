@@ -8,6 +8,7 @@ ref_pt = [None, None]
 marked = False
 marking = False
 
+
 def mark_by_mouse(event, x, y, flags, param):
     # grab references to the global variables
     global ref_pt, marking, marked
@@ -52,6 +53,7 @@ def mark_by_mouse(event, x, y, flags, param):
         # draw a rectangle around the region of interest
         # cv2.rectangle(img_vis, ref_pt[0], ref_pt[1], (0, 255, 0), 2)
         # cv2.imshow(title, img)
+
 
 def get_roi(img):
     title = 'specify ROI'

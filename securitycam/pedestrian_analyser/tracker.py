@@ -8,6 +8,7 @@ ref_pt = [None, None]
 marked = False
 marking = False
 
+
 def mark_by_mouse(event, x, y, flags, param):
     # grab references to the global variables
     global ref_pt, marking, marked
@@ -53,6 +54,7 @@ def mark_by_mouse(event, x, y, flags, param):
         # cv2.rectangle(img_vis, ref_pt[0], ref_pt[1], (0, 255, 0), 2)
         # cv2.imshow(title, img)
 
+
 def get_roi(img):
     title = 'specify ROI'
     cv2.namedWindow(title)
@@ -91,7 +93,8 @@ if __name__ == '__main__':
         ret, frame = video_capture.read()
 
     # setup initial location of window
-    roi_rect = get_roi(frame)
+    # roi_rect = get_roi(frame)
+    roi_rect = cv2.selectROI(frame, fromCenter=False)
     print 'specified ROI pts: {}'.format(roi_rect)
 
     init_once = False
@@ -102,7 +105,7 @@ if __name__ == '__main__':
     tracker = cv2.Tracker_create("KCF")
     # tracker = cv2.Tracker_create("MEDIANFLOW")
 
-    while (1):
+    while True:
         ret, frame = video_capture.read()
 
         if not ret:

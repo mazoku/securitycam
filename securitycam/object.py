@@ -25,6 +25,7 @@ class Object:
             # load the image, crop the image, then update the list of objects
             image = cv2.imread(img_path)
             roi_rect = cv2.selectROI('select object', image, fromCenter=False)
+            roi_rect = map(int, roi_rect)
             obj_im = image[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
 
             self.protos.append(obj_im)

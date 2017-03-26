@@ -29,7 +29,8 @@ def detect(image, descriptor):
 
 
 if __name__ == '__main__':
-    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0221.mp4'
+    # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0221.mp4'
+    data_path = '/home/tomas/Data/videa/katka1.mp4'
     video_capture = cv2.VideoCapture(data_path)
 
     # initialize the HOG descriptor/person detector

@@ -6,6 +6,7 @@ from sklearn.svm import SVC
 import cPickle
 import os
 import imutils
+from imutils.paths import list_images
 
 from descriptor import Descriptor
 

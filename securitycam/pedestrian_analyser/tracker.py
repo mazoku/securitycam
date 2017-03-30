@@ -80,16 +80,21 @@ def get_roi(img):
 
 
 if __name__ == '__main__':
+    # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
     # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0221.mp4'
-    data_path = '/home/tomas/Data/videa/ada1.mp4'
+    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
+    # data_path = '/home/tomas/Data/videa/ada1.mp4'
     # data_path = '/home/tomas/Data/videa/ada2.mp4'
+    # data_path = '/home/tomas/Data/videa/katka1.mp4'
+    # data_path = '/home/tomas/Data/videa/katka2.mp4'
+
 
     video_capture = cv2.VideoCapture(data_path)
 
     # take first frame of the video
     # 50 ... zacina bezet horizontalne
     # 180 ... bezi v prave casti obrazovky
-    for i in range(180):
+    for i in range(1):
         ret, frame = video_capture.read()
 
     # setup initial location of window
@@ -102,8 +107,8 @@ if __name__ == '__main__':
     # tracker = cv2.Tracker_create("MIL")
     # tracker = cv2.Tracker_create("TLD")
     # tracker = cv2.Tracker_create("BOOSTING")
-    tracker = cv2.Tracker_create("KCF")
-    # tracker = cv2.Tracker_create("MEDIANFLOW")
+    # tracker = cv2.Tracker_create("KCF")
+    tracker = cv2.Tracker_create("MEDIANFLOW")
 
     while True:
         ret, frame = video_capture.read()

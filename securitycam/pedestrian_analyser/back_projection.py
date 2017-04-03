@@ -2,6 +2,7 @@ from __future__ import division
 
 import cv2
 import numpy as np
+import imutils
 
 
 ref_pt = [None, None]
@@ -80,15 +81,17 @@ def get_roi(img):
 
 
 if __name__ == '__main__':
-    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0221.mp4'
+    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
 
     video_capture = cv2.VideoCapture(data_path)
 
     # take first frame of the video
     # 50 ... zacina bezet horizontalne
     # 180 ... bezi v prave casti obrazovky
-    for i in range(180):
+    for i in range(100):
         ret, frame = video_capture.read()
+
+    frame = imutils.resize(frame, width=800)
 
     # setup initial location of window
     roi_rect = get_roi(frame)
@@ -108,8 +111,9 @@ if __name__ == '__main__':
 
     while (1):
         ret, frame = video_capture.read()
+        frame = imutils.resize(frame, width=800)
 
-        if ret == True:
+        if ret:
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             dst = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
 
@@ -119,9 +123,11 @@ if __name__ == '__main__':
 
             # Draw it on image
             x, y, w, h = track_window
-            img2 = cv2.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
+            img2 = cv2.rectangle(frame.copy(), (x, y), (x + w, y + h), 255, 2)
             # img2 = dst
-            cv2.imshow('img2', img2)
+            # cv2.imshow('img2', img2)
+            img_vis = np.hstack((frame, cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)))
+            cv2.imshow('img2', img_vis)
 
             key = cv2.waitKey(60) & 0xFF
             # if the 'c' key is pressed, break from the loop

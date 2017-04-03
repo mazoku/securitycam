@@ -131,7 +131,6 @@ if __name__ == '__main__':
 
         cv2.imshow("tracking", frame)
         key = cv2.waitKey(1) & 0xFF
-        # if the 'c' key is pressed, break from the loop
         if key == ord('q') or key == 27:
             break
 

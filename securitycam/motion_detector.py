@@ -9,8 +9,10 @@ import sys
 
 class MotionDetector:
     def __init__(self, max_hist_len=5):
-        self.pos = None
-        self.curr_frame = None
+        self.pos = None  # position of significant motion
+        self.rgb_frame = None
+        self.curr_frame = None  # last grabbed frame
+        self.curr_res = None  # result of BGD subtractor
         # self.first_frame = None
         self.max_hist_len = max_hist_len
         self.frame_hist = deque()
@@ -24,6 +26,7 @@ class MotionDetector:
     def process_frame(self, frame, show_hist=False, show_res=True, show_now=True):
         # resize the frame, convert it to grayscale, and blur it
         # frame = imutils.resize(frame, width=500)
+        self.rgb_frame = frame
         self.curr_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         self.curr_frame = cv2.GaussianBlur(self.curr_frame, (21, 21), 0)
 
@@ -49,6 +52,37 @@ class MotionDetector:
         self.frame_hist.append(self.curr_frame)
         if len(self.frame_hist) > self.max_hist_len:
             self.frame_hist.popleft()
+
+    def calc_heatmap(self, update=False, frame=None, show=False, show_now=True):
+        if update and frame is not None:
+            self.curr_frame = frame
+            self.process_frame(frame)
+        if self.curr_res is None:
+            return None
+        motion_img = self.curr_res.copy()
+
+        # find the contours and take the 5 biggest
+        motion_t = 0.5 * 255
+        th = cv2.threshold((255 * motion_img).astype(np.uint8), motion_t, 255, cv2.THRESH_BINARY)[1]
+        cnts = cv2.findContours(th, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        cnts = sorted(cnts, key=cv2.contourArea)[-6:]
+
+        hm = self.curr_frame.copy()
+        mask = np.zeros_like(hm)
+        for c in cnts:
+            cv2.drawContours(mask, [c], -1, 1, -1)
+        hm *= mask
+
+        if show:
+            img_vis = self.rgb_frame.copy()
+            for c in cnts:
+                cv2.drawContours(img_vis, [c], -1, (0, 0, 255), 1)
+            img_vis = np.hstack((img_vis, cv2.cvtColor((255 * self.curr_res).astype(np.uint8), cv2.COLOR_GRAY2BGR),
+                                 cv2.cvtColor((255 * hm).astype(np.uint8), cv2.COLOR_GRAY2BGR)))
+            cv2.imshow('contours', img_vis)
+            if show_now:
+                cv2.waitKey(0)
+        return hm
 
     def calc_diff(self):
         # hist_len = len(self.frame_hist)
@@ -100,14 +134,16 @@ if __name__ == '__main__':
     md = MotionDetector()
     while True:
         ret, frame = video_capture.read()
-        md.process_frame(frame)
+        frame = imutils.resize(frame, width=800)
+        md.process_frame(frame, show_res=False)
+        md.calc_heatmap(show=True)
 
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q') or key == 27:
             break
 
     # MOG -------------------------------------
-    fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=500)
+    # fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=500)
     # fgbg = cv2.createBackgroundSubtractorMOG2()
     # fgbg = cv2.createBackgroundSubtractorKNN(history=20, detectShadows=False, dist2Threshold=1000)
     # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))

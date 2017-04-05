@@ -135,7 +135,7 @@ if __name__ == '__main__':
     md = MotionDetector()
     while True:
         ret, frame = video_capture.read()
-        frame = imutils.resize(frame, width=800)
+        frame = cv2.resize(frame, None, fx=0.25, fy=0.25)
         md.process_frame(frame, show_res=False)
         md.calc_heatmap()
 

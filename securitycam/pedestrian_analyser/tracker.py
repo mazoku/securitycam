@@ -96,7 +96,7 @@ if __name__ == '__main__':
     # 180 ... bezi v prave casti obrazovky
     for i in range(1):
         ret, frame = video_capture.read()
-
+    frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
     # setup initial location of window
     # roi_rect = get_roi(frame)
     roi_rect = cv2.selectROI(frame, fromCenter=False)
@@ -105,13 +105,14 @@ if __name__ == '__main__':
     init_once = False
 
     # tracker = cv2.Tracker_create("MIL")
-    # tracker = cv2.Tracker_create("TLD")
+    tracker = cv2.Tracker_create("TLD")
     # tracker = cv2.Tracker_create("BOOSTING")
     # tracker = cv2.Tracker_create("KCF")
-    tracker = cv2.Tracker_create("MEDIANFLOW")
+    # tracker = cv2.Tracker_create("MEDIANFLOW")
 
     while True:
         ret, frame = video_capture.read()
+        frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
 
         if not ret:
             print 'no image read'

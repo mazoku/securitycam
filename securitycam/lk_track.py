@@ -23,8 +23,8 @@ from __future__ import print_function
 
 import numpy as np
 import cv2
-import video
-from common import anorm2, draw_str
+# import video
+# from common import anorm2, draw_str
 from time import clock
 
 lk_params = dict( winSize  = (15, 15),
@@ -41,7 +41,7 @@ class App:
         self.track_len = 10
         self.detect_interval = 5
         self.tracks = []
-        self.cam = video.create_capture(video_src)
+        self.cam = cv2.VideoCapture(video_src)
         self.frame_idx = 0
 
     def run(self):
@@ -69,7 +69,7 @@ class App:
                     cv2.circle(vis, (x, y), 2, (0, 255, 0), -1)
                 self.tracks = new_tracks
                 cv2.polylines(vis, [np.int32(tr) for tr in self.tracks], False, (0, 255, 0))
-                draw_str(vis, (20, 20), 'track count: %d' % len(self.tracks))
+                # draw_str(vis, (20, 20), 'track count: %d' % len(self.tracks))
 
             if self.frame_idx % self.detect_interval == 0:
                 mask = np.zeros_like(frame_gray)

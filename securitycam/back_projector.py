@@ -57,7 +57,9 @@ class BackProjector:
         self.__model_im = x
         self.calc_model_hist(x)
 
-    def calc_model_hist(self, im):
+    def calc_model_hist(self, im=None):
+        if im is None:
+            im = self.model_im
         model_cs = cv2.cvtColor(im, self.space_code)
         model_hist = cv2.calcHist([model_cs], self.channels, None, self.sizes, self.ranges)
         cv2.normalize(model_hist, model_hist, 0, 255, cv2.NORM_MINMAX)
@@ -88,20 +90,25 @@ class BackProjector:
 
         # postprocessing - morphology
         if morphology:
-            disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+            disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
             _, postp = cv2.threshold(postp, 180, 255, cv2.THRESH_BINARY)
             postp = cv2.erode(postp, disc, iterations=3)
             postp = cv2.dilate(postp, disc, iterations=3)
 
+            disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+            postp = cv2.dilate(postp, disc, iterations=3)
+            postp = cv2.erode(postp, disc, iterations=3)
+            # postp = cv2.morphologyEx(postp, cv2.MORPH_CLOSE, disc)
+
         return postp
 
-    def calc_heatmap(self, frame=None):
+    def calc_heatmap(self, frame=None, convolution=True, morphology=True):
         if frame is not None:
             self.calc_backprojection(frame)
         else:
             self.calc_backprojection(self.rgb_frame)
 
-        self.heat_map = self.postprocess()
+        self.heat_map = self.postprocess(convolution=convolution, morphology=morphology)
 
     def calc_backprojection(self, frame):
         # save and convert frame
@@ -113,6 +120,17 @@ class BackProjector:
 
         # calculating backprojection
         self.backprojection = cv2.calcBackProject([cs_im], self.channels, self.model_hist, self.ranges, 1)
+
+    def track(self, track_window, frame=None, calc_heatmap=False):
+        if calc_heatmap:
+            if frame is not None:
+                self.calc_heatmap(frame)
+            else:
+                self.calc_heatmap(self.rgb_frame)
+        # Setup the termination criteria, either 10 iteration or move by at least 1 pt
+        term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
+        ret, track_window = cv2.CamShift(self.heat_map, track_window, term_crit)
+        return ret, track_window
 
 
 if __name__ == '__main__':
@@ -143,16 +161,24 @@ if __name__ == '__main__':
     bp = BackProjector(space='hsv', channels=[0, 1])
     bp.model_im = img_roi
     bp.calc_model_hist(bp.model_im)
+    track_window = roi_rect
     while True:
         ret, frame = video_capture.read()
+        if not ret:
+            sys.exit(0)
         # frame = imutils.resize(frame, width=800)
         frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
-        bp.calc_heatmap(frame)
+        bp.calc_heatmap(frame, convolution=True, morphology=False)
+
+        # # CamShift tracker
+        # ret, track_window = bp.track(track_window)
+        # x, y, w, h = track_window
+        # frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         if bp.heat_map is None:
             im_vis = np.hstack((frame, np.zeros_like(frame)))
         else:
-            im_vis = np.hstack((frame, cv2.cvtColor((255 * bp.heat_map).astype(np.uint8), cv2.COLOR_GRAY2BGR)))
+            im_vis = np.hstack((frame, cv2.cvtColor(bp.heat_map, cv2.COLOR_GRAY2BGR)))
         cv2.imshow('backprojection heatmap', im_vis)
 
         key = cv2.waitKey(1) & 0xFF

@@ -13,6 +13,7 @@ class MotionDetector:
         self.rgb_frame = None
         self.curr_frame = None  # last grabbed frame
         self.curr_res = None  # result of BGD subtractor
+        self.heat_map = None  # motion heatmap
         # self.first_frame = None
         self.max_hist_len = max_hist_len
         self.frame_hist = deque()
@@ -82,7 +83,7 @@ class MotionDetector:
             cv2.imshow('contours', img_vis)
             if show_now:
                 cv2.waitKey(0)
-        return hm
+        self.heat_map = hm
 
     def calc_diff(self):
         # hist_len = len(self.frame_hist)
@@ -136,7 +137,13 @@ if __name__ == '__main__':
         ret, frame = video_capture.read()
         frame = imutils.resize(frame, width=800)
         md.process_frame(frame, show_res=False)
-        md.calc_heatmap(show=True)
+        md.calc_heatmap()
+
+        if md.heat_map is None:
+            im_vis = np.hstack((frame, np.zeros_like(frame)))
+        else:
+            im_vis = np.hstack((frame, cv2.cvtColor((255 * md.heat_map).astype(np.uint8), cv2.COLOR_GRAY2BGR)))
+        cv2.imshow('motion heatmap', im_vis)
 
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q') or key == 27:

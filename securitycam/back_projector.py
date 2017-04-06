@@ -142,8 +142,6 @@ if __name__ == '__main__':
         ret, frame = video_capture.read()
     frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
     roi_selector = SelectROI()
-    # roi_selector.select(frame)
-    # roi_rect = roi_selector.roi_rect
     roi_selector.pt1 = (222, 283)
     roi_selector.pt2 = (249, 330)
     roi_selector.pt1 = (351, 31)
@@ -151,6 +149,8 @@ if __name__ == '__main__':
     roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],
                 roi_selector.pt2[0] - roi_selector.pt1[0],
                 roi_selector.pt2[1] - roi_selector.pt1[1])
+    # roi_selector.select(frame)
+    # roi_rect = roi_selector.roi_rect
     img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
 
     im_model_vis = frame.copy()

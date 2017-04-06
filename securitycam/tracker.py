@@ -37,6 +37,7 @@ class Tracker:
 
         if track_window is not None:
             self.track_window = track_window
+            self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
 
         self.prev_track_window = self.track_window[:]
 
@@ -45,12 +46,14 @@ class Tracker:
         self.ret, track_window = cv2.CamShift(self.track_space, self.track_window, term_crit)
         if self.ret:
             self.track_window = track_window
+            self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
         else:
             self.track_window = None
 
 
 if __name__ == '__main__':
-    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
+    # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
+    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
     video_capture = cv2.VideoCapture(data_path)
 
     # selecting model
@@ -67,6 +70,8 @@ if __name__ == '__main__':
     roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],
                 roi_selector.pt2[0] - roi_selector.pt1[0],
                 roi_selector.pt2[1] - roi_selector.pt1[1])
+    roi_selector.select(frame)
+    roi_rect = roi_selector.roi_rect
     img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
 
     bp = BackProjector(space='hsv', channels=[0, 1])

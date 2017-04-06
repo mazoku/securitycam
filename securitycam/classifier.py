@@ -101,7 +101,7 @@ if __name__ == '__main__':
     # testing
     results = []
     for td, tf in zip(test_data, test_features):
-        lab = classif.predict(tf)
+        lab = classif.predict(tf.reshape(1, -1))
         results.append((lab, td.copy()))
 
     # display results

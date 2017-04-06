@@ -57,8 +57,9 @@ class MotionDetector:
     def calc_heatmap(self, update=False, frame=None, show=False, show_now=True):
         if update and frame is not None:
             self.curr_frame = frame
-            self.process_frame(frame)
+            self.process_frame(frame, show_res=show)
         if self.curr_res is None:
+            self.heat_map = np.zeros(self.curr_frame.shape[:2], dtype=np.uint8)
             return None
         motion_img = self.curr_res.copy()
 

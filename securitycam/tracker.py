@@ -43,7 +43,13 @@ class Tracker:
 
         # Setup the termination criteria, either 10 iteration or move by at least 1 pt
         term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
-        self.ret, track_window = cv2.CamShift(self.track_space, self.track_window, term_crit)
+        try:
+            self.ret, track_window = cv2.CamShift(self.track_space, self.track_window, term_crit)
+        except:
+            pass
+        if track_window[2] == 0 or track_window[3] == 0:
+            # self.ret = True
+            track_window = (0, 0, 50, 50)
         if self.ret:
             self.track_window = track_window
             self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)

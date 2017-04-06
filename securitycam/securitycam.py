@@ -23,6 +23,7 @@ class SecurityCam:
         self.motiondetector = MotionDetector()
         self.tracker = Tracker()
         self.heatmap = None  # final heatmap derived from motion detection and backprojection
+        self.max_dist = 250
         self.n_nonsmooth = 0  # number of consecutive differences between tracker and detector
         self.max_n_nonsmooth = 5
         # self.track_window = None
@@ -41,10 +42,18 @@ class SecurityCam:
 
     def process_frame(self, frame):
         track_im = self.roi2image(frame, self.tracker.track_window)
+        if not track_im.any():
+            track_im = self.roi2image(frame, (0, 0, 50, 50))
+            is_artif = True
+        else:
+            is_artif = False
 
         self.backprojector.calc_heatmap(frame, convolution=True, morphology=False)
         self.tracker.track(frame, self.backprojector.heat_map, track_window=self.tracker.track_window)
         self.motiondetector.calc_heatmap(frame=frame, update=True, show=False)
+
+        if self.tracker.track_window[2] == 50:
+            pass
 
         # row2 = np.hstack((self.backprojector.heat_map, self.motiondetector.heat_map))
         # row2 = cv2.cvtColor(row2, cv2.COLOR_GRAY2BGR)
@@ -64,17 +73,20 @@ class SecurityCam:
         # cv2.imshow('tracker history', im_vis)
         # cv2.waitKey(0)
 
-        #TODO: jak se lisi vysledky, kdyz use_mean=True
-        feats = self.descriptor.describe(track_im, use_mean=False)[0].flatten()
-        label = self.classifier.predict(feats.reshape(1, -1))
-        classes = self.classifier.model.classes_
-        probs = self.classifier.predict_proba(feats.reshape(1, -1))[0, :]
-        res = [(c, p) for c, p in zip(classes, probs)]
-        # print res
+        if not is_artif:
+            #TODO: jak se lisi vysledky, kdyz use_mean=True
+            feats = self.descriptor.describe(track_im, use_mean=False)[0].flatten()
+            label = self.classifier.predict(feats.reshape(1, -1))
+            classes = self.classifier.model.classes_
+            probs = self.classifier.predict_proba(feats.reshape(1, -1))[0, :]
+            res = [(c, p) for c, p in zip(classes, probs)]
+            # print res
+        else:
+            label = None
         return label
 
     def control_smoothness(self, cent_detector, cont_detector, dist):
-        if dist > 250:
+        if dist > self.max_dist:
             self.n_nonsmooth += 1
             print 'Difference #{}'.format(self.n_nonsmooth)
             if self.n_nonsmooth > self.max_n_nonsmooth:
@@ -82,6 +94,8 @@ class SecurityCam:
                 (x, y, w, h) = cv2.boundingRect(cont_detector)
                 self.tracker.track_window = (x, y, w, h)
                 self.tracker.center = (x + w / 2, y + h / 2)
+                print 'Reseting difference counter'
+                self.n_nonsmooth = 0
         else:
             if self.n_nonsmooth > 0:
                 print 'Reseting difference counter'
@@ -100,16 +114,20 @@ class SecurityCam:
         # plt.show()
 
         cnts = cv2.findContours(hm.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        if not cnts:
+            return None, (0, 0), self.max_dist + 1
         cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:4]
         dists, centers = self.calc_cnts_dists(cnts, hm, show=False, show_now=True)
 
-        min_idx = np.argmin(dists)
+        try:
+            min_idx = np.argmin(dists)
+        except:
+            pass
         winner_c = cnts[min_idx]
         winner_cent = centers[min_idx]
         winner_d = dists[min_idx]
 
         return winner_c, winner_cent, winner_d
-
 
     def calc_cnts_dists(self, cnts, hm, show=False, show_now=True):
         dists = []
@@ -124,12 +142,16 @@ class SecurityCam:
                 cY = int(M["m01"] / M["m00"])
             except ZeroDivisionError:
                 tmp = np.squeeze(c)
-                m = tmp.mean(axis=0).astype(np.int32)
-                try:
+                if tmp.ndim == 1:
+                    cX = tmp[0]
+                    cY = tmp[1]
+                elif tmp.ndim > 1:
+                    m = tmp.mean(axis=0).astype(np.int32)
                     cX = m[0]
-                except:
-                    pass
-                cY = m[1]
+                    cY = m[1]
+                else:
+                    cX = 0
+                    cY = 0
             centers.append((cX, cY))
             dists.append(np.linalg.norm((cX - self.tracker.center[0], cY - self.tracker.center[1])))
             # if show:
@@ -151,6 +173,8 @@ class SecurityCam:
 if __name__ == '__main__':
     # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
     data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
+    # data_path = '/home/tomas/Data/videa/ada1.mp4'
+    # data_path = '/home/tomas/Data/videa/ada2.mp4'
     video_capture = cv2.VideoCapture(data_path)
 
     # selecting model
@@ -169,6 +193,9 @@ if __name__ == '__main__':
     roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],
                 roi_selector.pt2[0] - roi_selector.pt1[0],
                 roi_selector.pt2[1] - roi_selector.pt1[1])
+
+    # roi_selector.select(frame)
+    # roi_rect = roi_selector.roi_rect
     img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
 
     # visualizing model
@@ -183,16 +210,20 @@ if __name__ == '__main__':
     seccam.backprojector.calc_model_hist()
 
     # EXAMPLE - REINIT -----------------------------------------------
-    # for i in range(300):
-    #     ret, frame = video_capture.read()
+    for i in range(450):
+        ret, frame = video_capture.read()
     frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
+
     # processing video / camera stream
     while ret:
+        if seccam.tracker.track_window is None:
+            pass
         label = seccam.process_frame(frame)
         im_vis = frame.copy()
-        x, y, w, h = seccam.tracker.track_window
-        cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+        if label is not None:
+            x, y, w, h = seccam.tracker.track_window
+            cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
         cv2.imshow('security cam', im_vis)
         # reading new frame
         ret, frame = video_capture.read()
@@ -200,7 +231,7 @@ if __name__ == '__main__':
             frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
         else:
             msg = 'Did not get a frame - end of video file or camera error.'
-        cv2.waitKey(0)
+        # cv2.waitKey(0)
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q') or key == 27:
             msg = 'Terminated by user.'

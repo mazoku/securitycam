@@ -10,6 +10,8 @@ from motion_detector import MotionDetector
 from tracker import Tracker
 from select_roi import SelectROI
 
+import os
+
 
 class SecurityCam:
     def __init__(self):
@@ -176,6 +178,7 @@ if __name__ == '__main__':
     # data_path = '/home/tomas/Data/videa/ada1.mp4'
     # data_path = '/home/tomas/Data/videa/ada2.mp4'
     video_capture = cv2.VideoCapture(data_path)
+    save_output = True
 
     # selecting model
     for i in range(150):
@@ -210,12 +213,18 @@ if __name__ == '__main__':
     seccam.backprojector.calc_model_hist()
 
     # EXAMPLE - REINIT -----------------------------------------------
-    for i in range(450):
-        ret, frame = video_capture.read()
-    frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
+    # for i in range(450):
+    #     ret, frame = video_capture.read()
+    # frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
 
+    if save_output:
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        outdir = '/home/tomas/Data/sitmp/output'
+        video_writer = cv2.VideoWriter(os.path.join(outdir, 'output.avi'), fourcc, 20.0, (640, 480), True)#frame.shape[:2])
+    frame_num = 0
     # processing video / camera stream
     while ret:
+        frame_num += 1
         if seccam.tracker.track_window is None:
             pass
         label = seccam.process_frame(frame)
@@ -225,6 +234,12 @@ if __name__ == '__main__':
             cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
         cv2.imshow('security cam', im_vis)
+
+        if save_output:
+            video_writer.write(im_vis)
+            if frame_num % 20 == 0:
+                fname = os.path.join(outdir, 'frame_{:04d}.png'.format(frame_num))
+                cv2.imwrite(fname, im_vis)
         # reading new frame
         ret, frame = video_capture.read()
         if ret:
@@ -238,5 +253,7 @@ if __name__ == '__main__':
             break
 
     print msg
+    video_capture.release()
+    video_writer.release()
     cv2.waitKey(0)
     cv2.destroyAllWindows()

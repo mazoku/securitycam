@@ -1,16 +1,18 @@
 from __future__ import division
 
+import os
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+
+from back_projector import BackProjector
 from classifier import Classifier
 from descriptor import Descriptor
-from back_projector import BackProjector
 from motion_detector import MotionDetector
-from tracker import Tracker
+from face_detector import FaceDetector
+from pedestrian_detector import PedestrianDetector
 from select_roi import SelectROI
-
-import os
+from tracker import Tracker
 
 
 class SecurityCam:
@@ -23,6 +25,8 @@ class SecurityCam:
         self.classifier.train_from_protos(train_size=-1, return_test=False)
         self.backprojector = BackProjector(space='hsv', channels=[0, 1])
         self.motiondetector = MotionDetector()
+        self.facedetector = FaceDetector(faceCascadePath='../cascades/haarcascade_frontalface_default.xml')
+        self.pedestriandetector = PedestrianDetector()
         self.tracker = Tracker()
         self.heatmap = None  # final heatmap derived from motion detection and backprojection
         self.max_dist = 250
@@ -41,6 +45,24 @@ class SecurityCam:
     def roi2image(self, im, roi):
         im_roi = im[roi[1]:roi[1] + roi[3], roi[0]:roi[0] + roi[2]]
         return im_roi
+
+    def expand_roi(self, roi, scale_x, scale_y, img_shape):
+        x, y, w, h = roi
+        new_w = w * scale_x
+        new_h = h * scale_y
+        shift_x = (new_w - w) / 2
+        shift_y = (new_h - h) / 2
+        new_x = x - shift_x
+        new_y = y - shift_y
+
+        # size test
+        max_y, max_x = img_shape
+        new_x = min(max(new_x, 0), max_x)
+        new_y = min(max(new_y, 0), max_y)
+        end_x = min(new_x + new_w, max_x)
+        end_y = min(new_y + new_h, max_y)
+        new_roi = map(int, (new_x, new_y, end_x - new_x, end_y - new_y))
+        return new_roi
 
     def process_frame(self, frame):
         track_im = self.roi2image(frame, self.tracker.track_window)
@@ -217,6 +239,7 @@ if __name__ == '__main__':
     seccam.backprojector.model_im = img_roi
     seccam.backprojector.calc_model_hist()
 
+
     # EXAMPLE - REINIT -----------------------------------------------
     # for i in range(450):
     #     ret, frame = video_capture.read()
@@ -238,6 +261,38 @@ if __name__ == '__main__':
         # if label is not None and prob > 0.4:
         if label == target_label and prob > 0.6:
             x, y, w, h = seccam.tracker.track_window
+
+            # face detection
+            # if frame_num == 168:
+            #     pass
+            exp_roi = seccam.expand_roi(seccam.tracker.track_window, scale_x=2, scale_y=2, img_shape=frame .shape[:2])
+            # im_rois = frame.copy()
+            # cv2.rectangle(im_rois, (x, y), (x + w, y + h), (0, 255, 0), 1)
+            # xe, ye, we, he = exp_roi
+            # cv2.rectangle(im_rois, (xe, ye), (xe + we, ye + he), (0, 0, 255), 1)
+            # cv2.imshow('rois', im_rois)
+            # cv2.waitKey(0)
+
+            win_region = seccam.roi2image(frame, exp_roi)
+            faces = seccam.facedetector.detect(win_region, minNeighbors=2, minSize=(10, 10))
+            for (xf, yf, wf, hf) in faces:
+                xf += exp_roi[0]
+                yf += exp_roi[1]
+                cv2.rectangle(im_vis, (xf, yf), (xf + wf, yf + hf), (255, 0, 255), 1)
+
+            pedestrians = seccam.pedestriandetector.detect(win_region)
+            for (xp, yp, wp, hp) in pedestrians:
+                xp += exp_roi[0]
+                yp += exp_roi[1]
+                cv2.rectangle(im_vis, (xp, yp), (xp + wp, yp + hp), (255, 255, 0), 1)
+            # try:
+            #     cv2.imshow('win', win_region)
+            # except:
+            #     pass
+            # cv2.waitKey(0)
+
+            # visualization
+            # x, y, w, h = seccam.tracker.track_window
             cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
         cv2.imshow('security cam', im_vis)

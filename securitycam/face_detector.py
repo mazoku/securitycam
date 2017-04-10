@@ -9,8 +9,10 @@ class FaceDetector:
 
     def detect(self, image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30)):
         # detect faces in the image
+        # rects = self.faceCascade.detectMultiScale(image, scaleFactor=scaleFactor, minNeighbors=minNeighbors,
+        #                                           minSize=minSize, flags=cv2.cv.CV_HAAR_SCALE_IMAGE)
         rects = self.faceCascade.detectMultiScale(image, scaleFactor=scaleFactor, minNeighbors=minNeighbors,
-                                                  minSize=minSize, flags=cv2.cv.CV_HAAR_SCALE_IMAGE)
+                                                  minSize=minSize)
 
         # return the bounding boxes around the faces in the image
         return rects

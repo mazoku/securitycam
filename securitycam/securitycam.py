@@ -178,7 +178,7 @@ if __name__ == '__main__':
     # data_path = '/home/tomas/Data/videa/ada1.mp4'
     # data_path = '/home/tomas/Data/videa/ada2.mp4'
     video_capture = cv2.VideoCapture(data_path)
-    save_output = True
+    save_output = False
 
     # selecting model
     for i in range(150):
@@ -220,7 +220,7 @@ if __name__ == '__main__':
     if save_output:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         outdir = '/home/tomas/Data/sitmp/output'
-        video_writer = cv2.VideoWriter(os.path.join(outdir, 'output.avi'), fourcc, 20.0, (640, 480), True)#frame.shape[:2])
+        video_writer = cv2.VideoWriter(os.path.join(outdir, 'output.avi'), fourcc, 20.0, (frame.shape[1], frame.shape[0]), True)#frame.shape[:2])
     frame_num = 0
     # processing video / camera stream
     while ret:

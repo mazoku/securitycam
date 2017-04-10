@@ -79,13 +79,17 @@ class SecurityCam:
             #TODO: jak se lisi vysledky, kdyz use_mean=True
             feats = self.descriptor.describe(track_im, use_mean=False)[0].flatten()
             label = self.classifier.predict(feats.reshape(1, -1))
-            classes = self.classifier.model.classes_
-            probs = self.classifier.predict_proba(feats.reshape(1, -1))[0, :]
-            res = [(c, p) for c, p in zip(classes, probs)]
+            probs = self.classifier.predict_proba(feats.reshape(1, -1))
+            # print probs
+            prob = probs.max()
+            # classes = self.classifier.model.classes_
+            # probs = self.classifier.predict_proba(feats.reshape(1, -1))[0, :]
+            # res = [(c, p) for c, p in zip(classes, probs)]
             # print res
         else:
             label = None
-        return label
+            prob = 0
+        return label, prob
 
     def control_smoothness(self, cent_detector, cont_detector, dist):
         if dist > self.max_dist:
@@ -200,6 +204,7 @@ if __name__ == '__main__':
     # roi_selector.select(frame)
     # roi_rect = roi_selector.roi_rect
     img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
+    target_label = 'matous'
 
     # visualizing model
     im_model_vis = frame.copy()
@@ -227,9 +232,11 @@ if __name__ == '__main__':
         frame_num += 1
         if seccam.tracker.track_window is None:
             pass
-        label = seccam.process_frame(frame)
+        label, prob = seccam.process_frame(frame)
+        print label, prob
         im_vis = frame.copy()
-        if label is not None:
+        # if label is not None and prob > 0.4:
+        if label == target_label and prob > 0.6:
             x, y, w, h = seccam.tracker.track_window
             cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)

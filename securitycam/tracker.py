@@ -61,11 +61,17 @@ if __name__ == '__main__':
     # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
     data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
     video_capture = cv2.VideoCapture(data_path)
+    # output_fname = '/home/tomas/temp/cv_seminar/backproj_tracker_in.avi'
+    # fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
     # selecting model
     for i in range(150):
         ret, frame = video_capture.read()
     frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
+
+    # video writer initialization
+    # video_writer = cv2.VideoWriter(output_fname, fourcc, 30.0, (2 * frame.shape[1], frame.shape[0]), True)
+
     roi_selector = SelectROI()
     # roi_selector.select(frame)
     # roi_rect = roi_selector.roi_rect
@@ -78,6 +84,7 @@ if __name__ == '__main__':
                 roi_selector.pt2[1] - roi_selector.pt1[1])
     roi_selector.select(frame)
     roi_rect = roi_selector.roi_rect
+
     img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
 
     bp = BackProjector(space='hsv', channels=[0, 1])
@@ -86,6 +93,12 @@ if __name__ == '__main__':
 
     tracker = Tracker()
     tracker.track_window = roi_rect
+
+    # bp.calc_heatmap(frame, convolution=True, morphology=False)
+    # cv2.rectangle(frame, roi_selector.pt1, roi_selector.pt2, (0, 255, 0), 2)
+    # im_vis = np.hstack((frame, cv2.cvtColor(bp.heat_map, cv2.COLOR_GRAY2BGR)))
+    # for i in range(10):
+    #     video_writer.write(im_vis)
     while True:
         ret, frame = video_capture.read()
         if not ret:
@@ -101,6 +114,7 @@ if __name__ == '__main__':
             cv2.rectangle(frame_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
         im_vis = np.hstack((frame_vis, cv2.cvtColor(bp.heat_map, cv2.COLOR_GRAY2BGR)))
 
+        # video_writer.write(im_vis)
         cv2.imshow('CamShift tracker', im_vis)
 
         key = cv2.waitKey(1) & 0xFF

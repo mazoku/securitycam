@@ -134,6 +134,7 @@ class SecurityCam:
         hm1 = self.backprojector.heat_map
         hm2 = self.motiondetector.heat_map
         hm = ((hm1 + hm2) / 2).astype(np.uint8)
+        self.heatmap = hm
         _, hm = cv2.threshold(hm, 100, 255, cv2.THRESH_BINARY)
 
         # plt.figure()
@@ -205,7 +206,10 @@ if __name__ == '__main__':
     # data_path = '/home/tomas/Data/videa/ada1.mp4'
     # data_path = '/home/tomas/Data/videa/ada2.mp4'
     video_capture = cv2.VideoCapture(data_path)
-    save_output = False
+    save_output = True
+    detect_faces = False
+    detect_pedestrians = False
+    classify = False
 
     # selecting model
     for i in range(150):
@@ -248,66 +252,64 @@ if __name__ == '__main__':
 
     if save_output:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        outdir = '/home/tomas/Data/sitmp/output'
-        video_writer = cv2.VideoWriter(os.path.join(outdir, 'output.avi'), fourcc, 20.0, (frame.shape[1], frame.shape[0]), True)#frame.shape[:2])
+        # outdir = '/home/tomas/Data/sitmp/output'
+        # video_writer = cv2.VideoWriter(os.path.join(outdir, 'output.avi'), fourcc, 20.0, (frame.shape[1], frame.shape[0]), True)#frame.shape[:2])
+        output_fname = '/home/tomas/temp/cv_seminar/muj_tracker.avi'
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        # video writer initialization
+        video_writer = cv2.VideoWriter(output_fname, fourcc, 30.0, (2 * frame.shape[1], 2 *frame.shape[0]), True)
+        row1 = np.hstack((frame.copy(), np.zeros_like(frame)))
+        row2 = np.hstack((np.zeros_like(frame), np.zeros_like(frame)))
+        im_vis = np.vstack((row1, row2))
+        cv2.rectangle(im_vis, roi_selector.pt1, roi_selector.pt2, (0, 255, 0), 2)
+        for i in range(10):
+            video_writer.write(im_vis)
     frame_num = 0
     # processing video / camera stream
     while ret:
         frame_num += 1
-        print 'FRAME #{}'.format(frame_num)
-        if seccam.tracker.track_window is None:
-            pass
+        # print 'FRAME #{}'.format(frame_num)
+        # if seccam.tracker.track_window is None:
+        #     pass
         label, prob = seccam.process_frame(frame)
-        print label, prob
+        # print label, prob
         im_vis = frame.copy()
         # if label is not None and prob > 0.4:
-        if label == target_label and prob > 0.6:
+        if (classify and (label == target_label and prob > 0.6)) or not classify:
             x, y, w, h = seccam.tracker.track_window
 
-            # face detection
-            # if frame_num == 168:
-            #     pass
-            exp_roi = seccam.expand_roi(seccam.tracker.track_window, scale_x=2, scale_y=2, img_shape=frame .shape[:2])
-            print 'exp ROI size: {}'.format(exp_roi[2:])
-            # im_rois = frame.copy()
-            # cv2.rectangle(im_rois, (x, y), (x + w, y + h), (0, 255, 0), 1)
-            # xe, ye, we, he = exp_roi
-            # cv2.rectangle(im_rois, (xe, ye), (xe + we, ye + he), (0, 0, 255), 1)
-            # cv2.imshow('rois', im_rois)
-            # cv2.waitKey(0)
+            if detect_faces or detect_pedestrians:
+                exp_roi = seccam.expand_roi(seccam.tracker.track_window, scale_x=2, scale_y=2, img_shape=frame.shape[:2])
+                win_region = seccam.roi2image(frame, exp_roi)
+                win_region = imutils.resize(win_region, width=400)
 
-            win_region = seccam.roi2image(frame, exp_roi)
-            win_region = imutils.resize(win_region, width=400)
-            faces = seccam.facedetector.detect(win_region, minNeighbors=2, minSize=(10, 10))
-            for (xf, yf, wf, hf) in faces:
-                xf += exp_roi[0]
-                yf += exp_roi[1]
-                cv2.rectangle(im_vis, (xf, yf), (xf + wf, yf + hf), (255, 0, 255), 1)
+            if detect_faces:
+                faces = seccam.facedetector.detect(win_region, minNeighbors=2, minSize=(10, 10))
+                for (xf, yf, wf, hf) in faces:
+                    xf += exp_roi[0]
+                    yf += exp_roi[1]
+                    cv2.rectangle(im_vis, (xf, yf), (xf + wf, yf + hf), (255, 0, 255), 1)
 
             # if frame_num == 34:
             #     print frame.shape, exp_roi
             #     cv2.waitKey(0)
             #     pass
-            pedestrians = seccam.pedestriandetector.detect(win_region)
-            print pedestrians
-            for (xp, yp, wp, hp) in pedestrians:
-                xp += exp_roi[0]
-                yp += exp_roi[1]
-                cv2.rectangle(im_vis, (xp, yp), (xp + wp, yp + hp), (255, 255, 0), 1)
+            if detect_pedestrians:
+                pedestrians = seccam.pedestriandetector.detect(win_region)
+                print pedestrians
+                for (xp, yp, wp, hp) in pedestrians:
+                    xp += exp_roi[0]
+                    yp += exp_roi[1]
+                    cv2.rectangle(im_vis, (xp, yp), (xp + wp, yp + hp), (255, 255, 0), 1)
             # if len(pedestrians):
             #     print 'pedestrian detected'
             #     cv2.waitKey(0)
 
-            # try:
-            #     cv2.imshow('win', win_region)
-            # except:
-            #     pass
-            # cv2.waitKey(0)
-
             # visualization
             # x, y, w, h = seccam.tracker.track_window
             cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+            if classify:
+                cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
         cv2.imshow('security cam', im_vis)
 
         # if len(pedestrians):
@@ -315,10 +317,14 @@ if __name__ == '__main__':
         #     cv2.waitKey(0)
 
         if save_output:
-            video_writer.write(im_vis)
-            if frame_num % 20 == 0:
-                fname = os.path.join(outdir, 'frame_{:04d}.png'.format(frame_num))
-                cv2.imwrite(fname, im_vis)
+            row1 = np.hstack((im_vis, cv2.cvtColor(seccam.heatmap, cv2.COLOR_GRAY2BGR)))
+            row2 = np.hstack((cv2.cvtColor(seccam.backprojector.heat_map, cv2.COLOR_GRAY2BGR),
+                              cv2.cvtColor(seccam.motiondetector.heat_map, cv2.COLOR_GRAY2BGR)))
+            im_mosaic = np.vstack((row1, row2))
+            video_writer.write(im_mosaic)
+            # if frame_num % 20 == 0:
+            #     fname = os.path.join(outdir, 'frame_{:04d}.png'.format(frame_num))
+            #     cv2.imwrite(fname, im_vis)
         # reading new frame
         ret, frame = video_capture.read()
         if ret:

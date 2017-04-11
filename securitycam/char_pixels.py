@@ -236,15 +236,18 @@ def model_from_protos(protos_dir, channels, space='hsv'):
 
 # ---------------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
+    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
     # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0221.mp4'
-    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
-    # data_path = '/home/tomas/Data/videa/ada1.mp4'
+    # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
+    data_path = '/home/tomas/Data/videa/ada1.mp4'
     # data_path = '/home/tomas/Data/videa/ada2.mp4'
     # data_path = '/home/tomas/Data/videa/katka1.mp4'
     # data_path = '/home/tomas/Data/videa/katka2.mp4'
 
     video_capture = cv2.VideoCapture(data_path)
+
+    output_fname = '/home/tomas/temp/cv_seminar/hsv_ada.avi'
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
     # creating model
     # model_hist = model_from_protos('../data/matous/protos/', channels=[0, 1])
@@ -255,6 +258,9 @@ if __name__ == '__main__':
     for i in range(150):
         ret, frame = video_capture.read()
         frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
+
+    # video writer initialization
+    video_writer = cv2.VideoWriter(output_fname, fourcc, 30.0, (2 * frame.shape[1], 2 * frame.shape[0]), True)
 
     # setup initial location of window
     roi_selector = SelectROI()
@@ -287,26 +293,27 @@ if __name__ == '__main__':
         frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
 
         # colorspace channel visualization
-        # c1, c2, c3 = cv2.split(cv2.cvtColor(frame, cv2.COLOR_BGR2HSV))
+        c1, c2, c3 = cv2.split(cv2.cvtColor(frame, cv2.COLOR_BGR2HSV))
         # # c1, c2, c3 = cv2.split(frame)  # BGR
-        # row1 = np.hstack((frame, cv2.cvtColor(c1, cv2.COLOR_GRAY2BGR)))
-        # row2 = np.hstack((cv2.cvtColor(c2, cv2.COLOR_GRAY2BGR), cv2.cvtColor(c3, cv2.COLOR_GRAY2BGR)))
-        # im_vis = np.vstack((row1, row2))
-        # cv2.imshow('channels', im_vis)
+        row1 = np.hstack((frame, cv2.cvtColor(c1, cv2.COLOR_GRAY2BGR)))
+        row2 = np.hstack((cv2.cvtColor(c2, cv2.COLOR_GRAY2BGR), cv2.cvtColor(c3, cv2.COLOR_GRAY2BGR)))
+        im_vis = np.vstack((row1, row2))
+        video_writer.write(im_vis)
+        cv2.imshow('channels', im_vis)
         # cv2.waitKey(20)
 
-        dst = char_pixels(frame, img_roi=img_roi, channels=[0, 1], space='hsv')
-        # dst = char_pixels(frame, model_hist=model_hist, channels=[0, 1], space='hsv')
-        # ret, dst = back_projection(frame, img_roi=img_roi, channels=[0, 1], space='hsv')
-
-        # visualization
-        im1 = frame.copy()
-        # cv2.rectangle(im1, roi_selector.pt1, roi_selector.pt2, (0, 255, 0), 1)
-        im2 = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
-        # cv2.rectangle(im2, roi_selector.pt1, roi_selector.pt2, (0, 255, 0), 1)
-        im_vis = np.hstack((im1, im2))
-        cv2.imshow('back proj', im_vis)
-        # cv2.waitKey(0)
+        # dst = char_pixels(frame, img_roi=img_roi, channels=[0, 1], space='hsv')
+        # # dst = char_pixels(frame, model_hist=model_hist, channels=[0, 1], space='hsv')
+        # # ret, dst = back_projection(frame, img_roi=img_roi, channels=[0, 1], space='hsv')
+        #
+        # # visualization
+        # im1 = frame.copy()
+        # # cv2.rectangle(im1, roi_selector.pt1, roi_selector.pt2, (0, 255, 0), 1)
+        # im2 = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
+        # # cv2.rectangle(im2, roi_selector.pt1, roi_selector.pt2, (0, 255, 0), 1)
+        # im_vis = np.hstack((im1, im2))
+        # cv2.imshow('back proj', im_vis)
+        # # cv2.waitKey(0)
 
         k = cv2.waitKey(1) & 0xFF
         if k == 27:  # Esc

@@ -129,14 +129,24 @@ class MotionDetector:
 
 
 if __name__ == '__main__':
-    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
+    # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
+    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
     video_capture = cv2.VideoCapture(data_path)
+
+    video_capture = cv2.VideoCapture(data_path)
+    # output_fname = '/home/tomas/temp/cv_seminar/motion_detection.avi'
+    # fourcc = cv2.VideoWriter_fourcc(*'XVID')
+
+    ret, frame = video_capture.read()
+    frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
+    # video writer initialization
+    # video_writer = cv2.VideoWriter(output_fname, fourcc, 30.0, (2 * frame.shape[1], frame.shape[0]), True)
 
     # my adaptive -------------------------------------
     md = MotionDetector()
     while True:
         ret, frame = video_capture.read()
-        frame = cv2.resize(frame, None, fx=0.25, fy=0.25)
+        frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
         md.process_frame(frame, show_res=False)
         md.calc_heatmap()
 
@@ -144,6 +154,7 @@ if __name__ == '__main__':
             im_vis = np.hstack((frame, np.zeros_like(frame)))
         else:
             im_vis = np.hstack((frame, cv2.cvtColor((255 * md.heat_map).astype(np.uint8), cv2.COLOR_GRAY2BGR)))
+        # video_writer.write(im_vis)
         cv2.imshow('motion heatmap', im_vis)
 
         key = cv2.waitKey(1) & 0xFF

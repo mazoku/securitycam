@@ -4,6 +4,7 @@ import os
 
 import cv2
 import numpy as np
+import imutils
 
 from back_projector import BackProjector
 from classifier import Classifier
@@ -253,6 +254,7 @@ if __name__ == '__main__':
     # processing video / camera stream
     while ret:
         frame_num += 1
+        print 'FRAME #{}'.format(frame_num)
         if seccam.tracker.track_window is None:
             pass
         label, prob = seccam.process_frame(frame)
@@ -266,6 +268,7 @@ if __name__ == '__main__':
             # if frame_num == 168:
             #     pass
             exp_roi = seccam.expand_roi(seccam.tracker.track_window, scale_x=2, scale_y=2, img_shape=frame .shape[:2])
+            print 'exp ROI size: {}'.format(exp_roi[2:])
             # im_rois = frame.copy()
             # cv2.rectangle(im_rois, (x, y), (x + w, y + h), (0, 255, 0), 1)
             # xe, ye, we, he = exp_roi
@@ -274,17 +277,27 @@ if __name__ == '__main__':
             # cv2.waitKey(0)
 
             win_region = seccam.roi2image(frame, exp_roi)
+            win_region = imutils.resize(win_region, width=400)
             faces = seccam.facedetector.detect(win_region, minNeighbors=2, minSize=(10, 10))
             for (xf, yf, wf, hf) in faces:
                 xf += exp_roi[0]
                 yf += exp_roi[1]
                 cv2.rectangle(im_vis, (xf, yf), (xf + wf, yf + hf), (255, 0, 255), 1)
 
+            # if frame_num == 34:
+            #     print frame.shape, exp_roi
+            #     cv2.waitKey(0)
+            #     pass
             pedestrians = seccam.pedestriandetector.detect(win_region)
+            print pedestrians
             for (xp, yp, wp, hp) in pedestrians:
                 xp += exp_roi[0]
                 yp += exp_roi[1]
                 cv2.rectangle(im_vis, (xp, yp), (xp + wp, yp + hp), (255, 255, 0), 1)
+            # if len(pedestrians):
+            #     print 'pedestrian detected'
+            #     cv2.waitKey(0)
+
             # try:
             #     cv2.imshow('win', win_region)
             # except:
@@ -296,6 +309,10 @@ if __name__ == '__main__':
             cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
         cv2.imshow('security cam', im_vis)
+
+        # if len(pedestrians):
+        #     print 'pedestrian detected'
+        #     cv2.waitKey(0)
 
         if save_output:
             video_writer.write(im_vis)
@@ -309,8 +326,11 @@ if __name__ == '__main__':
         else:
             msg = 'Did not get a frame - end of video file or camera error.'
         # cv2.waitKey(0)
+
         key = cv2.waitKey(1) & 0xFF
-        if key == ord('q') or key == 27:
+        if key == 32:
+            cv2.waitKey(0)
+        elif key == ord('q') or key == 27:
             msg = 'Terminated by user.'
             break
 

@@ -206,13 +206,14 @@ if __name__ == '__main__':
     # data_path = '/home/tomas/Data/videa/ada1.mp4'
     # data_path = '/home/tomas/Data/videa/ada2.mp4'
     video_capture = cv2.VideoCapture(data_path)
-    save_output = True
+    save_output = False
     detect_faces = False
     detect_pedestrians = False
     classify = False
 
     # selecting model
-    for i in range(150):
+    # for i in range(150):
+    for i in range(600):
         ret, frame = video_capture.read()
     frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
     roi_selector = SelectROI()
@@ -222,8 +223,10 @@ if __name__ == '__main__':
     # roi_selector.pt2 = (249, 330)
     # roi_selector.pt1 = (351, 31)
     # roi_selector.pt2 = (410, 130)
-    roi_selector.pt1 = (464, 374) # DJI_0220, f150
-    roi_selector.pt2 = (494, 431)
+    # roi_selector.pt1 = (464, 374) # DJI_0220, f150
+    # roi_selector.pt2 = (494, 431)
+    roi_selector.pt1 = (297, 121)  # DJI_0220, f600 - mizi z obrazu
+    roi_selector.pt2 = (416, 319)
     roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],
                 roi_selector.pt2[0] - roi_selector.pt1[0],
                 roi_selector.pt2[1] - roi_selector.pt1[1])
@@ -243,7 +246,6 @@ if __name__ == '__main__':
     seccam.tracker.track_window = roi_rect
     seccam.backprojector.model_im = img_roi
     seccam.backprojector.calc_model_hist()
-
 
     # EXAMPLE - REINIT -----------------------------------------------
     # for i in range(450):
@@ -333,7 +335,7 @@ if __name__ == '__main__':
             msg = 'Did not get a frame - end of video file or camera error.'
         # cv2.waitKey(0)
 
-        key = cv2.waitKey(1) & 0xFF
+        key = cv2.waitKey(20) & 0xFF
         if key == 32:
             cv2.waitKey(0)
         elif key == ord('q') or key == 27:

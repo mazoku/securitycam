@@ -6,26 +6,43 @@ from back_projector import BackProjector
 from select_roi import SelectROI
 import sys
 
-class Tracker:
-    def __init__(self, track_window=None):
+
+class Tracker(object):
+    def __init__(self, window=None):
         self.center = None
-        self.track_window = track_window
+        self._track_window = window
         self.frame = None
         self.track_space = None
         self.ret = False
         self.prev_track_window = None
+        self.found = False
 
     @property
     def track_window(self):
-        return self.track_window
+        return self._track_window
 
     @track_window.setter
     def track_window(self, window):
-        self.track_window = window
+        # self.prev_track_window = self._track_window[:]
+        self._track_window = window
         if window is None:
             self.center = None
         else:
             self.center = (window[0] + window[2] / 2, window[1] + window[1] / 2)
+
+    # def get_track_window(self):
+    #     print 'track window getter'
+    #     return self._track_window
+    #
+    # def set_track_window(self, window):
+    #     print 'track window setter'
+    #     self._track_window = window
+    #     if window is None:
+    #         self.center = None
+    #     else:
+    #         self.center = (window[0] + window[2] / 2, window[1] + window[1] / 2)
+    #
+    # track_window = property(get_track_window, set_track_window)
 
     def track(self, frame, track_space=None, track_window=None):
         self.frame = frame
@@ -37,22 +54,24 @@ class Tracker:
 
         if track_window is not None:
             self.track_window = track_window
-            self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
+            # self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
 
         self.prev_track_window = self.track_window[:]
 
         # Setup the termination criteria, either 10 iteration or move by at least 1 pt
         term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
-        try:
-            self.ret, track_window = cv2.CamShift(self.track_space, self.track_window, term_crit)
-        except:
-            pass
+        track_box, track_window = cv2.CamShift(self.track_space, self.track_window, term_crit)
+        # track_box = elipse: ((center_x, center_y), (width, height), angle)
+
+        print 'box: {}, window:{}'.format(track_box, track_window)
         if track_window[2] == 0 or track_window[3] == 0:
             # self.ret = True
+            print 'in'
             track_window = (0, 0, 50, 50)
-        if self.ret:
+            self.found = False
+        if track_box:
             self.track_window = track_window
-            self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
+            # self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
         else:
             self.track_window = None
 

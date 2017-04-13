@@ -314,6 +314,7 @@ if __name__ == '__main__':
                 # print '{}, box:{}, win:{}'.format(seccam.tracker.found, seccam.tracker.track_box, seccam.tracker.track_window)
                 cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 cv2.ellipse(im_vis, seccam.tracker.track_box, (255, 0, 255), 2)
+                cv2.putText(im_vis, '{}'.format(int(seccam.tracker.score)), (x, y + h + 25), cv2.FONT_HERSHEY_SIMPLEX, 1., (0, 0, 255), 2)
             if classify:
                 cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
         cv2.imshow('security cam', im_vis)

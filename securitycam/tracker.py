@@ -16,6 +16,7 @@ class Tracker(object):
         self.ret = False
         self.prev_track_window = None
         self.found = False
+        self.score = 0
 
     @property
     def track_window(self):
@@ -44,20 +45,24 @@ class Tracker(object):
     #
     # track_window = property(get_track_window, set_track_window)
 
-    def trackbox_prob(self, track_space):
+    def trackbox_score(self, track_space):
         mask_box = np.zeros(track_space.shape[:2], dtype=np.uint8)
-        cv2.ellipse(mask_box, self.track_box, 1)
-
+        cv2.ellipse(mask_box, self.track_box, 1, thickness=-1)
         mask_space = track_space > 0
 
-        values_box = track_space[np.nonzero(mask_box)]
         values_space = track_space[np.nonzero(mask_box & mask_space)]
+        if values_space.any():
+            self.score = values_space.mean()
+        else:
+            self.score = 0
 
-        prob_box = values_box.mean()
-        prob_space = values_space.mean()
+        # values_box = track_space[np.nonzero(mask_box)]
+        # score_box = values_box.mean()
 
+        # print 'box: {:.2f}, space:{:.2f}'.format(prob_box, prob_space)
 
-
+        # cv2.imshow('masks', np.hstack((255 * mask_box, 255 * (mask_space & mask_box))))
+        # cv2.waitKey(0)
 
     def track(self, frame, track_space=None, track_window=None):
         self.frame = frame
@@ -84,6 +89,7 @@ class Tracker(object):
                 self.found = False
             else:
                 self.found = True
+                self.trackbox_score(track_space)
         else:
             self.found = False
 

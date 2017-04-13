@@ -270,15 +270,17 @@ if __name__ == '__main__':
     # processing video / camera stream
     while ret:
         frame_num += 1
-        # print 'FRAME #{}'.format(frame_num)
-        # if seccam.tracker.track_window is None:
-        #     pass
+
+        # frame processing - detection, tracking, recognition
         label, prob = seccam.process_frame(frame)
         # print label, prob
+
         im_vis = frame.copy()
+
         # if label is not None and prob > 0.4:
         if (classify and (label == target_label and prob > 0.6)) or not classify:
             x, y, w, h = seccam.tracker.track_window
+            center, size, angle = seccam.tracker.track_box
 
             if detect_faces or detect_pedestrians:
                 exp_roi = seccam.expand_roi(seccam.tracker.track_window, scale_x=2, scale_y=2, img_shape=frame.shape[:2])
@@ -308,15 +310,13 @@ if __name__ == '__main__':
             #     cv2.waitKey(0)
 
             # visualization
-            # x, y, w, h = seccam.tracker.track_window
-            cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            if seccam.tracker.found:
+                # print '{}, box:{}, win:{}'.format(seccam.tracker.found, seccam.tracker.track_box, seccam.tracker.track_window)
+                cv2.rectangle(im_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.ellipse(im_vis, seccam.tracker.track_box, (255, 0, 255), 2)
             if classify:
                 cv2.putText(im_vis, '{}'.format(label[0]), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
         cv2.imshow('security cam', im_vis)
-
-        # if len(pedestrians):
-        #     print 'pedestrian detected'
-        #     cv2.waitKey(0)
 
         if save_output:
             row1 = np.hstack((im_vis, cv2.cvtColor(seccam.heatmap, cv2.COLOR_GRAY2BGR)))
@@ -327,6 +327,7 @@ if __name__ == '__main__':
             # if frame_num % 20 == 0:
             #     fname = os.path.join(outdir, 'frame_{:04d}.png'.format(frame_num))
             #     cv2.imwrite(fname, im_vis)
+
         # reading new frame
         ret, frame = video_capture.read()
         if ret:
@@ -335,7 +336,7 @@ if __name__ == '__main__':
             msg = 'Did not get a frame - end of video file or camera error.'
         # cv2.waitKey(0)
 
-        key = cv2.waitKey(20) & 0xFF
+        key = cv2.waitKey(1) & 0xFF
         if key == 32:
             cv2.waitKey(0)
         elif key == ord('q') or key == 27:
@@ -344,6 +345,7 @@ if __name__ == '__main__':
 
     print msg
     video_capture.release()
-    video_writer.release()
+    if save_output:
+        video_writer.release()
     cv2.waitKey(0)
     cv2.destroyAllWindows()

@@ -44,6 +44,21 @@ class Tracker(object):
     #
     # track_window = property(get_track_window, set_track_window)
 
+    def trackbox_prob(self, track_space):
+        mask_box = np.zeros(track_space.shape[:2], dtype=np.uint8)
+        cv2.ellipse(mask_box, self.track_box, 1)
+
+        mask_space = track_space > 0
+
+        values_box = track_space[np.nonzero(mask_box)]
+        values_space = track_space[np.nonzero(mask_box & mask_space)]
+
+        prob_box = values_box.mean()
+        prob_space = values_space.mean()
+
+
+
+
     def track(self, frame, track_space=None, track_window=None):
         self.frame = frame
 
@@ -56,24 +71,32 @@ class Tracker(object):
             self.track_window = track_window
             # self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
 
-        self.prev_track_window = self.track_window[:]
+        if self.track_window and self.track_window[2] > 0 and self.track_window[3] > 0:
+            self.prev_track_window = self.track_window[:]
 
-        # Setup the termination criteria, either 10 iteration or move by at least 1 pt
-        term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
-        track_box, track_window = cv2.CamShift(self.track_space, self.track_window, term_crit)
-        # track_box = elipse: ((center_x, center_y), (width, height), angle)
+            # Setup the termination criteria, either 10 iteration or move by at least 1 pt
+            term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
+            self.track_box, self.track_window = cv2.CamShift(self.track_space, self.track_window, term_crit)
+            # track_box = elipse: ((center_x, center_y), (width, height), angle)
 
-        print 'box: {}, window:{}'.format(track_box, track_window)
-        if track_window[2] == 0 or track_window[3] == 0:
-            # self.ret = True
-            print 'in'
-            track_window = (0, 0, 50, 50)
-            self.found = False
-        if track_box:
-            self.track_window = track_window
-            # self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
+            # print 'box: {}, window:{}'.format(self.track_box, self.track_window)
+            if self.track_window[2] == 0 or self.track_window[3] == 0:
+                self.found = False
+            else:
+                self.found = True
         else:
-            self.track_window = None
+            self.found = False
+
+            # if track_window[2] == 0 or track_window[3] == 0:
+            #     # self.ret = True
+            #     print 'in'
+            #     track_window = (0, 0, 50, 50)
+            #     self.found = False
+            # if track_box:
+            #     self.track_window = track_window
+            #     # self.center = (self.track_window[0] + self.track_window[2] / 2, self.track_window[1] + self.track_window[1] / 2)
+            # else:
+            #     self.track_window = None
 
 
 if __name__ == '__main__':

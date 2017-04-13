@@ -1,6 +1,7 @@
 from __future__ import division
 
 import cv2
+import numpy as np
 import matplotlib.pyplot as plt
 from select_roi import SelectROI
 
@@ -28,7 +29,7 @@ def calc_hist(img, sizes=(256, 256, 256), show=False, show_now=True):
     for s, c in zip(sizes, cv2.split(img)):
         h = cv2.calcHist([c], [0], None, [s], [0, s])
         h /= h.sum()
-        hist.append(h)
+        hist.append(h.flatten())
 
     if show:
         plt.figure()
@@ -48,15 +49,50 @@ def calc_hist(img, sizes=(256, 256, 256), show=False, show_now=True):
     return hist
 
 
-def hist_score_pt(image, pt):
+def hist_score_pt(hist, pt):
+    score = 0
+    for h, p in zip(hist, pt):
+        score += h[p]
+    return score
 
 
+def hist_score_im(image, hist, threshold=200, show=False, show_now=True):
+    # smoothing
+    try:
+        ims = cv2.bilateralFilter(image, 9, 75, 75)
+    except:
+        ims = image.copy()
 
-def hist_score_im(image, hist):
-    pts = image.flatten()
-    for p in pts:
-        score = 
+    # calcuating score
+    pts = ims.reshape((-1, 3))  # n_pts * 3 (number of hsv channels
+    score = np.zeros(pts.shape[0])
+    for i, p in enumerate(pts):
+        score[i] = hist_score_pt(hist, p)
+    # to describe uniqueness of pts, we need to invert the score
+    score = score.max() - score
 
+    # reshaping and normalization
+    score_im = score.reshape(image.shape[:2])
+    cv2.normalize(score_im, score_im, 0, 255, norm_type=cv2.NORM_MINMAX)
+    score_im = score_im.astype(np.uint8)
+
+    # h = cv2.calcHist([score_im], [0], None, [256], [0, 256])
+    # plt.figure()
+    # plt.plot(h)
+    # plt.xlim([0, 256])
+    # plt.show()
+
+    # thresholding
+    score_t = 255 * (score_im > threshold).astype(np.uint8)
+
+    # visualization
+    if show:
+        cv2.imshow('smoothing', np.hstack((image, ims)))
+        cv2.imshow('score', np.hstack((image, cv2.cvtColor(score_t, cv2.COLOR_GRAY2BGR))))
+        if show_now:
+            cv2.waitKey(0)
+
+    return score_im, score_t
 
 
 def char_pixels(frame, model):
@@ -64,18 +100,12 @@ def char_pixels(frame, model):
     frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     model_hsv = cv2.cvtColor(model, cv2.COLOR_BGR2HSV)
 
-    # histogram calculation
-    # frame_h = []
-    # frame_h.append(cv2.calcHist([frame_hsv], [0], None, [180], [0, 180]))
-    # frame_h.append(cv2.calcHist([frame_hsv], [1], None, [256], [0, 256]))
-    # frame_h.append(cv2.calcHist([frame_hsv], [2], None, [256], [0, 256]))
-
     # calculate histograms
     hist_frame = calc_hist(frame_hsv, [180, 256, 256], show=True, show_now=False)
     # hist_model = calc_hist(model_hsv, [180, 256, 256], show=True)
 
     # calculate histogram score
-    hist_score_im(model_hsv, hist_frame)
+    score_im, score_t = hist_score_im(model_hsv, hist_frame)
 
 
 # ---------------------------------------------------------------------------------------------

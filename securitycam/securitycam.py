@@ -231,8 +231,8 @@ if __name__ == '__main__':
                 roi_selector.pt2[0] - roi_selector.pt1[0],
                 roi_selector.pt2[1] - roi_selector.pt1[1])
 
-    # roi_selector.select(frame)
-    # roi_rect = roi_selector.roi_rect
+    roi_selector.select(frame)
+    roi_rect = roi_selector.roi_rect
     img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
     target_label = 'matous'
 
@@ -245,7 +245,7 @@ if __name__ == '__main__':
     seccam = SecurityCam()
     seccam.tracker.track_window = roi_rect
     seccam.backprojector.model_im = img_roi
-    seccam.backprojector.calc_model_hist()
+    seccam.backprojector.calc_model_hist(frame, calc_char=True, show=True)
 
     # EXAMPLE - REINIT -----------------------------------------------
     # for i in range(450):

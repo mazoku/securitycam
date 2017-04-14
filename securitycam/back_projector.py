@@ -11,7 +11,7 @@ import os
 from select_roi import SelectROI
 
 
-class BackProjector:
+class BackProjector(object):
     def __init__(self, space='hsv', hist_sizes=None, hist_ranges=None, channels=-1):
         self.rgb_frame = None
         self.heat_map = None  # heatmap of back projection
@@ -48,21 +48,113 @@ class BackProjector:
         self.sizes = [self.hist_sizes[i] for i in self.channels]
         self.ranges = list(chain.from_iterable([(0, self.hist_ranges[i]) for i in self.channels]))
 
-    @property
-    def model_im(self):
-        return self.__model_im
+    # @property
+    # def model_im(self):
+    #     return self._model_im
+    #
+    # @model_im.setter
+    # def model_im(self, x):
+    #     self._model_im = x
+    #     self.calc_model_hist(x)
 
-    @model_im.setter
-    def model_im(self, x):
-        self.__model_im = x
-        self.calc_model_hist(x)
+    def calc_hist(self, img, sizes=(256, 256, 256)):#, show=False, show_now=True):
+        hist = []
+        for s, c in zip(sizes, cv2.split(img)):
+            h = cv2.calcHist([c], [0], None, [s], [0, s])
+            h /= h.sum()
+            hist.append(h.flatten())
 
-    def calc_model_hist(self, im=None):
+        # if show:
+        #     plt.figure()
+        #     plt.subplot2grid((3, 6), (0, 0), rowspan=3, colspan=3)
+        #     # plt.imshow(img)
+        #     # plt.subplot(411)
+        #     plt.imshow(img)
+        #     for i, (s, h) in enumerate(zip(sizes, hist)):
+        #         # plt.subplot(4, 1, i + 2)
+        #         ax = plt.subplot2grid((3, 6), (i, 3), colspan=3)
+        #         plt.plot(h)
+        #         plt.xlim([0, s])
+        #         ax.yaxis.tick_right()
+        #     if show_now:
+        #         plt.show()
+
+        return hist
+
+    def hist_score_im(self, image, hist, threshold=200, show=False, show_now=True):
+        # smoothing
+        try:
+            ims = cv2.bilateralFilter(image, 9, 75, 75)
+        except:
+            ims = image.copy()
+
+        # calcuating score
+        pts = ims.reshape((-1, 3))  # n_pts * 3 (number of hsv channels
+        score = np.zeros(pts.shape[0])
+        for i, p in enumerate(pts):
+            score[i] = self.hist_score_pt(hist, p)
+        # to describe uniqueness of pts, we need to invert the score
+        score = score.max() - score
+
+        # reshaping and normalization
+        score_im = score.reshape(image.shape[:2])
+        cv2.normalize(score_im, score_im, 0, 255, norm_type=cv2.NORM_MINMAX)
+        score_im = score_im.astype(np.uint8)
+
+        # h = cv2.calcHist([score_im], [0], None, [256], [0, 256])
+        # plt.figure()
+        # plt.plot(h)
+        # plt.xlim([0, 256])
+        # plt.show()
+
+        # thresholding
+        score_t = 255 * (score_im > threshold).astype(np.uint8)
+
+        # visualization
+        if show:
+            cv2.imshow('smoothing', np.hstack((image, ims)))
+            cv2.imshow('score', np.hstack((image, cv2.cvtColor(score_t, cv2.COLOR_GRAY2BGR))))
+            if show_now:
+                cv2.waitKey(0)
+
+        return score_im, score_t
+
+    def hist_score_pt(self, hist, pt):
+        score = 0
+        for h, p in zip(hist, pt):
+            score += h[p]
+        return score
+
+    def char_pixels(self, frame, model):
+        # converting to hsv
+        frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        model_hsv = cv2.cvtColor(model, cv2.COLOR_BGR2HSV)
+
+        # calculate histograms
+        hist_frame = self.calc_hist(frame_hsv, [180, 256, 256])
+        # hist_model = calc_hist(model_hsv, [180, 256, 256], show=True)
+
+        # calculate histogram score
+        score_im, score_t = self.hist_score_im(model_hsv, hist_frame)
+        return score_im, score_t
+
+    def calc_model_hist(self, frame, im=None, mask=None, calc_char=True, show=False, show_now=True):
         if im is None:
             im = self.model_im
+        if mask is None and calc_char:
+                score_im, mask = self.char_pixels(frame, im)
+
         model_cs = cv2.cvtColor(im, self.space_code)
-        model_hist = cv2.calcHist([model_cs], self.channels, None, self.sizes, self.ranges)
+        model_hist = cv2.calcHist([model_cs], self.channels, mask, self.sizes, self.ranges)
         cv2.normalize(model_hist, model_hist, 0, 255, cv2.NORM_MINMAX)
+
+        if show:
+            if mask is None:
+                mask = 255 * np.ones(im.shape[:2], dtype=np.uint8)
+            cv2.imshow('model', np.hstack((im, cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR))))
+            if show_now:
+                cv2.waitKey(0)
+
         self.model_hist = model_hist
 
     def calc_model_from_protos(self, protos_path):

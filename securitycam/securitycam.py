@@ -38,11 +38,25 @@ class SecurityCam:
         # bp.calc_model_hist(bp.model_im)
         # track_window = roi_rect
 
-    def mark_track_window(self, frame):
+    def mark_track_window(self, frame_ind):
+        for i in range(frame_ind):
+            ret, frame = self.stream.read()
+        frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
         roi_selector = SelectROI()
-        roi_selector.select(frame)
-        roi_rect = roi_selector.roi_rect
-        self.tracker.track_window = roi_rect
+        # roi_selector.select(frame)
+        # roi_rect = roi_selector.roi_rect
+
+        # roi_selector.pt1 = (464, 374) # DJI_0220, f150
+        # roi_selector.pt2 = (494, 431)
+        roi_selector.pt1 = (297, 121)  # DJI_0220, f600 - mizi z obrazu
+        roi_selector.pt2 = (416, 319)
+        roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],
+                    roi_selector.pt2[0] - roi_selector.pt1[0],
+                    roi_selector.pt2[1] - roi_selector.pt1[1])
+
+        img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
+        return frame, roi_rect, img_roi
+        # self.tracker.track_window = roi_rect
 
     def roi2image(self, im, roi):
         im_roi = im[roi[1]:roi[1] + roi[3], roi[0]:roi[0] + roi[2]]
@@ -206,44 +220,28 @@ if __name__ == '__main__':
     data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
     # data_path = '/home/tomas/Data/videa/ada1.mp4'
     # data_path = '/home/tomas/Data/videa/ada2.mp4'
-    video_capture = cv2.VideoCapture(data_path)
     save_output = False
     detect_faces = False
     detect_pedestrians = False
     classify = False
 
-    # selecting model
-    # for i in range(150):
-    for i in range(600):
-        ret, frame = video_capture.read()
-    frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
-    roi_selector = SelectROI()
-    # roi_selector.select(frame)
-    # roi_rect = roi_selector.roi_rect
-    # roi_selector.pt1 = (222, 283)
-    # roi_selector.pt2 = (249, 330)
-    # roi_selector.pt1 = (351, 31)
-    # roi_selector.pt2 = (410, 130)
-    # roi_selector.pt1 = (464, 374) # DJI_0220, f150
-    # roi_selector.pt2 = (494, 431)
-    roi_selector.pt1 = (297, 121)  # DJI_0220, f600 - mizi z obrazu
-    roi_selector.pt2 = (416, 319)
-    roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],
-                roi_selector.pt2[0] - roi_selector.pt1[0],
-                roi_selector.pt2[1] - roi_selector.pt1[1])
+    seccam = SecurityCam()
+    seccam.stream = cv2.VideoCapture(data_path)
 
-    roi_selector.select(frame)
-    roi_rect = roi_selector.roi_rect
-    img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
+    # selecting track window
+    frame_ind = 600
+    frame, roi_rect, img_roi = seccam.mark_track_window(frame_ind)
     target_label = 'matous'
 
     # visualizing model
     im_model_vis = frame.copy()
-    cv2.rectangle(im_model_vis, roi_selector.pt1, roi_selector.pt2, (0, 255, 0), 1)
+    pt1 = (roi_rect[0], roi_rect[1])
+    pt2 = (roi_rect[0] + roi_rect[2], roi_rect[1] + roi_rect[3])
+    cv2.rectangle(im_model_vis, pt1, pt2, (0, 255, 0), 1)
     cv2.imshow('model', im_model_vis)
 
     # creating object -----------------------------------------------
-    matous = Object('matous')
+    matous = Object(target_label)
     desc = Descriptor('hsvhist')
     score_im, mask = seccam.backprojector.char_pixels(frame, im)
 

@@ -57,31 +57,29 @@ class HSVHistogram:
 
             # extract a color histogram from the elliptical region and
             # update the feature vector
-            # hist = self.histogram(image, ellipMask)
-            hist = self.gen_histogram(image, ellipMask)
+            hist = self.histogram(image, ellipMask)
             features.extend(hist)
         else:
-            # hist = self.histogram(image)
-            hist = self.gen_histogram(image)
+            hist = self.histogram(image)
             features.extend(hist)
 
         # return the feature vector
         return np.array(features)
 
+    # def histogram(self, image, mask=None):
+    #     # extract a 3D color histogram from the masked region of the
+    #     # image, using the supplied number of bins per channel; then
+    #     # normalize the histogram
+    #     try:
+    #         hist = cv2.calcHist([image], [0, 1, 2], mask, self.bins, [0, 180, 0, 256, 0, 256])
+    #     except:
+    #         pass
+    #     cv2.normalize(hist, hist).flatten()
+    #
+    #     # return the histogram
+    #     return hist
+
     def histogram(self, image, mask=None):
-        # extract a 3D color histogram from the masked region of the
-        # image, using the supplied number of bins per channel; then
-        # normalize the histogram
-        try:
-            hist = cv2.calcHist([image], [0, 1, 2], mask, self.bins, [0, 180, 0, 256, 0, 256])
-        except:
-            pass
-        cv2.normalize(hist, hist).flatten()
-
-        # return the histogram
-        return hist
-
-    def gen_histogram(self, image, mask=None):
         if mask is None:
             mask = 255 * np.ones(image.shape[:2], dtype=np.uint8)
 

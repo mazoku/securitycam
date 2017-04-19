@@ -13,7 +13,20 @@ class Object:
     def __init__(self, name):
         self.name = name
         self.protos = []
+        self.masks = []
         self.features = []
+        self.mean_features = None
+        self.median_features = None
+
+    def update_obj(self, img, mask, features):
+        self.protos.append(img)
+        self.masks.append(mask)
+        self.features.append(features)
+
+    def calc_mean(self):
+        features = np.array(self.features)
+        features = np.mean(features, axis=0)
+        return features
 
     def mark_protos(self, proto_dir):
         # img_paths = list(paths.list_images(proto_dir))

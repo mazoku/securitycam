@@ -14,6 +14,7 @@ from face_detector import FaceDetector
 from pedestrian_detector import PedestrianDetector
 from select_roi import SelectROI
 from tracker import Tracker
+from object import Object
 
 
 class SecurityCam:
@@ -240,6 +241,11 @@ if __name__ == '__main__':
     im_model_vis = frame.copy()
     cv2.rectangle(im_model_vis, roi_selector.pt1, roi_selector.pt2, (0, 255, 0), 1)
     cv2.imshow('model', im_model_vis)
+
+    # creating object -----------------------------------------------
+    matous = Object('matous')
+    desc = Descriptor('hsvhist')
+    score_im, mask = seccam.backprojector.char_pixels(frame, im)
 
     # initializing SecurityCam object -------------------------------
     seccam = SecurityCam()

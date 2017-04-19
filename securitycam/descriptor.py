@@ -30,6 +30,9 @@ class Descriptor:
 
         return features
 
+    def describe_char(self, img):
+
+
     def chi2_distance(self, hist1, hist2, eps=1e-10):
         # compute the chi-squared distance
         d = 0.5 * np.sum([((a - b) ** 2) / (a + b + eps)

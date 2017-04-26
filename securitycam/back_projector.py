@@ -15,10 +15,10 @@ class BackProjector(object):
     def __init__(self, space='hsv', hist_sizes=None, hist_ranges=None, channels=-1):
         self.rgb_frame = None
         self.heat_map = None  # heatmap of back projection
-        self.model_im = None  # image of model
-        self.model_hist = None  # hist of model
+        self.model_im = None  # image of the model
+        self.model_hist = None  # model = histogram
         self.space = space
-        self.backprojection = None  # backprojection
+        self.backprojection = None  # backprojection image
 
         if space == 'hsv':
             self.space_code = cv2.COLOR_BGR2HSV
@@ -156,7 +156,7 @@ class BackProjector(object):
     #             cv2.waitKey(0)
     #
     #     self.model_hist = model_hist
-    #
+
     # def calc_model_from_protos(self, protos_path):
     #     root, __, files = os.walk(protos_path).next()
     #     img_paths = [os.path.join(root, x) for x in files]

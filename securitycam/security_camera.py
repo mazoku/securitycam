@@ -99,7 +99,8 @@ class SecurityCam(object):
         msg = '<Default msg>'
         while True:
             # update current objects
-            # --
+            for o in self.objects:
+                o.update(self.frame)
 
             # detect new objects
             # --

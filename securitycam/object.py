@@ -141,7 +141,7 @@ class Object(object):
         pass
 
     def calc_model(self):
-        pass
+        self.back_projector.model_im
 
     def create_from_protos(self):
         pass

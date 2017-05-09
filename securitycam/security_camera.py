@@ -92,7 +92,7 @@ class SecurityCam(object):
         """
 
         # get to the desired frame
-        for i in range(frame_ind):
+        for i in range(frame_ind + 1):
             ret, frame = self.stream.read()
         self.frame = cv2.resize(frame, None, fx=self.img_scale, fy=self.img_scale)
 
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     frame, roi_rect, img_roi = seccam.mark_new_object(frame_ind)
     target_label = 'matous'
 
-    matous = Object()
+    matous = Object(target_label)
     seccam.objects.append(matous)
 
     seccam.run()

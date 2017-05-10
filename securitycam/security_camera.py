@@ -145,9 +145,13 @@ if __name__ == '__main__':
     # selecting track window
     frame_ind = 600
     frame, roi_rect, img_roi = seccam.mark_new_object(frame_ind)
-    target_label = 'matous'
 
+    # create new object
+    target_label = 'matous'
     matous = Object(target_label)
+    matous.calc_model(img=img_roi)
+
+    # update object list
     seccam.objects.append(matous)
 
     seccam.run()

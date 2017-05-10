@@ -7,6 +7,7 @@ from collections import defaultdict
 import pickle
 import gzip
 import os
+from itertools import chain
 
 from back_projector import BackProjector
 from tracker import Tracker
@@ -15,7 +16,7 @@ from motion_detector import MotionDetector
 
 
 class Object(object):
-    def __init__(self, name, motion_detector=None):
+    def __init__(self, name, motion_detector=None, space='hsv', hist_sizes=None, hist_ranges=None, channels=-1):
         self.name = name  # object label
         self.protos = []  # list of image prototypes
         self.masks = []
@@ -29,6 +30,34 @@ class Object(object):
         self.descriptor = Descriptor('hsvhist')
         if motion_detector is None:
             self.motion_detector = MotionDetector()
+
+        if space == 'hsv':
+            self.space_code = cv2.COLOR_BGR2HSV
+            if hist_sizes is None:
+                self.hist_sizes = [180, 16, 16]
+            if hist_ranges is None:
+                self.hist_ranges = [180, 256, 256]
+        elif space == 'lab':
+            self.space_code = cv2.COLOR_BGR2Lab
+            if hist_sizes is None:
+                self.hist_sizes = [16, 16, 16]
+            if hist_ranges is None:
+                self.hist_ranges = [256, 256, 256]
+        elif space == 'rgb':
+            self.space_code = cv2.COLOR_BGR2RGB
+            if hist_sizes is None:
+                self.hist_sizes = [8, 8, 8]
+            if hist_ranges is None:
+                self.hist_ranges = [256, 256, 256]
+
+        self.channels = channels
+        if self.channels == -1:
+            self.channels = range(3)
+        elif not isinstance(self.channels, list):
+            self.channels = [self.channels]
+
+        self.sizes = [self.hist_sizes[i] for i in self.channels]
+        self.ranges = list(chain.from_iterable([(0, self.hist_ranges[i]) for i in self.channels]))
 
     def calc_heatmap(self):
         hm1 = self.back_projector.heat_map
@@ -140,11 +169,67 @@ class Object(object):
     def load():
         pass
 
-    def calc_model(self):
-        self.back_projector.model_im
+    def calc_model(self, img=None, mask=None, calc_char=True, show=False, show_now=True):
+        if img is None:
+            img = self.protos[0]
+        else:
+            self.protos.append(img)
+        # if mask is None and calc_char:
+        #         score_im, mask = self.char_pixels(img, im)
 
-    def create_from_protos(self):
-        pass
+        model_cs = cv2.cvtColor(img, self.space_code)
+        model_hist = cv2.calcHist([model_cs], self.channels, mask, self.sizes, self.ranges)
+        cv2.normalize(model_hist, model_hist, 0, 255, cv2.NORM_MINMAX)
+
+        if show:
+            if mask is None:
+                mask = 255 * np.ones(img.shape[:2], dtype=np.uint8)
+            cv2.imshow('model', np.hstack((img, cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR))))
+            if show_now:
+                cv2.waitKey(0)
+
+        self.model_hist = model_hist
+
+    def load_protos(self, protos_path):
+        """
+        Load prototypes from disk.
+        :param protos_path: Path to where the prototypes residues on the disk.
+        :return:
+        """
+        # get all the files in given directory
+        root, __, files = os.walk(protos_path).next()
+        img_paths = [os.path.join(root, x) for x in files]
+
+        # load the image and append it to the protos list
+        protos = []
+        for img_path in enumerate(img_paths):
+            protos.append(cv2.imread(img_path))
+        self.protos = protos
+
+    def create_from_protos(self, protos_path=None):
+        """
+        Calculates histogram of the model from prototypes given by the path or already loaded.
+        :param protos_path: Path to where the prototypes residues on the disk.
+        :return:
+        """
+        # load prototypes from file if the path is given
+        if protos_path is not None:
+            self.load_protos(protos_path)
+
+        # create the model structure
+        model_hist = np.zeros([self.hist_sizes[i] for i in self.channels])
+
+        # process each prototype and compute its histogram
+        for im in self.protos:
+            im = cv2.resize(im, (200, 300))
+            im = cv2.GaussianBlur(im, (3, 3), 0)
+            im_cs = cv2.cvtColor(im, self.space_code)
+            h = cv2.calcHist([im_cs], self.channels, None, self.sizes, self.ranges)
+            model_hist += h
+        model_hist /= len(self.protos)
+
+        # update the model attribute
+        self.model_hist = model_hist
 
     def update(self, frame):
         # back project and motion detection

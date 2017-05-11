@@ -247,9 +247,8 @@ class Object(object):
         row2 = np.hstack((im3, im4))
         im_vis = np.vstack((row1, row2))
 
-        cv2.imshow('frame | obj_heatmap | backproj_heatmap | motion_heatmap', im_vis)
+        cv2.imshow('{}: frame | obj_heatmap | backproj_heatmap | motion_heatmap'.format(self.name), im_vis)
         key = cv2.waitKey(5) & 0xFF
-        print key
         if key == ord('q') or key == 27:
             self.show_heatmaps_F = False
         else:

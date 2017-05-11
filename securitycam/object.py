@@ -16,7 +16,7 @@ from motion_detector import MotionDetector
 
 
 class Object(object):
-    def __init__(self, name, motion_detector=None, space='hsv', hist_sizes=None, hist_ranges=None, channels=-1):
+    def __init__(self, name, motion_detector=None, space='hsv', hist_sizes=None, hist_ranges=None, channels=[0, 1]):
         self.name = name  # object label
         self.protos = []  # list of image prototypes
         self.masks = []
@@ -30,6 +30,9 @@ class Object(object):
         self.descriptor = Descriptor('hsvhist')
         if motion_detector is None:
             self.motion_detector = MotionDetector()
+
+        # flags
+        self.show_heatmaps_F = False  # F means it's a flag (no more name collisions with methods)
 
         if space == 'hsv':
             self.space_code = cv2.COLOR_BGR2HSV
@@ -189,6 +192,7 @@ class Object(object):
                 cv2.waitKey(0)
 
         self.model_hist = model_hist
+        self.back_projector.model_hist = self.model_hist
 
     def load_protos(self, protos_path):
         """
@@ -231,6 +235,26 @@ class Object(object):
         # update the model attribute
         self.model_hist = model_hist
 
+    def show_heatmaps(self, frame):
+        win_height = 300
+        im1 = imutils.resize(frame, height=win_height)
+        im2 = cv2.cvtColor(imutils.resize(self.heatmap, height=win_height), cv2.COLOR_GRAY2BGR)
+        im3 = cv2.cvtColor(imutils.resize(self.back_projector.heat_map, height=win_height), cv2.COLOR_GRAY2BGR)
+        im4 = cv2.cvtColor(imutils.resize(self.motion_detector.heat_map, height=win_height), cv2.COLOR_GRAY2BGR)
+
+        # creating mosaic
+        row1 = np.hstack((im1, im2))
+        row2 = np.hstack((im3, im4))
+        im_vis = np.vstack((row1, row2))
+
+        cv2.imshow('frame | obj_heatmap | backproj_heatmap | motion_heatmap', im_vis)
+        key = cv2.waitKey(5) & 0xFF
+        print key
+        if key == ord('q') or key == 27:
+            self.show_heatmaps_F = False
+        else:
+            self.show_heatmaps_F = True
+
     def update(self, frame):
         # back project and motion detection
         self.back_projector.calc_heatmap(frame, convolution=True, morphology=False)
@@ -239,9 +263,13 @@ class Object(object):
         # calculating heatmap
         self.calc_heatmap()
 
+        # visualize heatmaps
+        if self.show_heatmaps_F:
+            self.show_heatmaps(frame)
+
         # update tracker
         # self.tracker.track(frame, self.back_projector.heat_map, track_window=self.tracker.track_window)
-        self.tracker.track(frame, self.heatmap)
+        # self.tracker.track(frame, self.heatmap)
 
         # control the smoothness of object position
-        self.control_smoothness()
+        # self.control_smoothness()

@@ -124,7 +124,7 @@ class BackProjector(object):
     #     for h, p in zip(hist, pt):
     #         score += h[p]
     #     return score
-    #
+
     # def char_pixels(self, frame, model):
     #     # converting to hsv
     #     frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -138,24 +138,24 @@ class BackProjector(object):
     #     score_im, score_t = self.hist_score_im(model_hsv, hist_frame)
     #     return score_im, score_t
 
-    # def calc_model_hist(self, frame, im=None, mask=None, calc_char=True, show=False, show_now=True):
-    #     if im is None:
-    #         im = self.model_im
-    #     if mask is None and calc_char:
-    #             score_im, mask = self.char_pixels(frame, im)
-    #
-    #     model_cs = cv2.cvtColor(im, self.space_code)
-    #     model_hist = cv2.calcHist([model_cs], self.channels, mask, self.sizes, self.ranges)
-    #     cv2.normalize(model_hist, model_hist, 0, 255, cv2.NORM_MINMAX)
-    #
-    #     if show:
-    #         if mask is None:
-    #             mask = 255 * np.ones(im.shape[:2], dtype=np.uint8)
-    #         cv2.imshow('model', np.hstack((im, cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR))))
-    #         if show_now:
-    #             cv2.waitKey(0)
-    #
-    #     self.model_hist = model_hist
+    def calc_model_hist(self, frame, im=None, mask=None, calc_char=True, show=False, show_now=True):
+        if im is None:
+            im = self.model_im
+        # if mask is None and calc_char:
+        #         score_im, mask = self.char_pixels(frame, im)
+
+        model_cs = cv2.cvtColor(im, self.space_code)
+        model_hist = cv2.calcHist([model_cs], self.channels, mask, self.sizes, self.ranges)
+        cv2.normalize(model_hist, model_hist, 0, 255, cv2.NORM_MINMAX)
+
+        if show:
+            if mask is None:
+                mask = 255 * np.ones(im.shape[:2], dtype=np.uint8)
+            cv2.imshow('model', np.hstack((im, cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR))))
+            if show_now:
+                cv2.waitKey(0)
+
+        self.model_hist = model_hist
 
     # def calc_model_from_protos(self, protos_path):
     #     root, __, files = os.walk(protos_path).next()
@@ -234,8 +234,8 @@ if __name__ == '__main__':
         ret, frame = video_capture.read()
     frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
     roi_selector = SelectROI()
-    roi_selector.pt1 = (222, 283)
-    roi_selector.pt2 = (249, 330)
+    # roi_selector.pt1 = (222, 283)
+    # roi_selector.pt2 = (249, 330)
     roi_selector.pt1 = (351, 31)
     roi_selector.pt2 = (410, 130)
     roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],

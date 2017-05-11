@@ -42,16 +42,18 @@ class SecurityCam(object):
 
         # mark the object
         roi_selector = SelectROI()
-        roi_selector.select(frame)
-        roi_rect = roi_selector.roi_rect
+        # roi_selector.select(frame)
+        # roi_rect = roi_selector.roi_rect
 
-        # roi_selector.pt1 = (464, 374) # DJI_0220, f150
+        # roi_selector.pt1 = (464, 374)  # DJI_0220, f150
         # roi_selector.pt2 = (494, 431)
         # roi_selector.pt1 = (297, 121)  # DJI_0220, f600 - mizi z obrazu
         # roi_selector.pt2 = (416, 319)
-        # roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],
-        #             roi_selector.pt2[0] - roi_selector.pt1[0],
-        #             roi_selector.pt2[1] - roi_selector.pt1[1])
+        roi_selector.pt1 = (351, 31)  # DJI_0222, f150
+        roi_selector.pt2 = (410, 130)
+        roi_rect = (roi_selector.pt1[0], roi_selector.pt1[1],
+                    roi_selector.pt2[0] - roi_selector.pt1[0],
+                    roi_selector.pt2[1] - roi_selector.pt1[1])
 
         img_roi = frame[roi_rect[1]:roi_rect[1] + roi_rect[3], roi_rect[0]:roi_rect[0] + roi_rect[2]]
         return frame, roi_rect, img_roi
@@ -63,11 +65,20 @@ class SecurityCam(object):
         """
         pass
 
-    def create_object(self):
+    def create_object(self, label, img_roi):
         """
         Create new object from an image ROI.
-        :return:
+        :param label: Label / name of the new object
+        :param img_roi: Image containing the object (marked by hand or autonomously)
+        :return: New Object instance
         """
+        # create new object and calculate its model
+        obj = Object(label)
+        obj.calc_model(img=img_roi)
+
+        # update object list
+        self.objects.append(obj)
+        return obj
 
     def update_objects(self):
         """
@@ -84,7 +95,7 @@ class SecurityCam(object):
 
         return img_vis
 
-    def run(self, frame_ind=0):
+    def run(self, frame_ind=0, show_heatmaps=False):
         """
         Main method for processing the video stream
         :param frame_ind: index of the first frame to be processed
@@ -133,25 +144,21 @@ class SecurityCam(object):
 
 # -------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
-    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
+    data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0222.mp4'
+    # data_path = '/home/tomas/Data/sitmp/Matous_tracking_Z30/DJI_0220.mp4'
     # data_path = '/home/tomas/Data/videa/ada1.mp4'
     # data_path = '/home/tomas/Data/videa/ada2.mp4'
-
 
     seccam = SecurityCam()
     seccam.stream = cv2.VideoCapture(data_path)
 
     # selecting track window
-    frame_ind = 600
+    # frame_ind = 600
+    frame_ind = 149
     frame, roi_rect, img_roi = seccam.mark_new_object(frame_ind)
 
     # create new object
-    target_label = 'matous'
-    matous = Object(target_label)
-    matous.calc_model(img=img_roi)
+    obj = seccam.create_object('matous', img_roi)
+    obj.show_heatmaps_F = True
 
-    # update object list
-    seccam.objects.append(matous)
-
-    seccam.run()
+    seccam.run(show_heatmaps=True)
